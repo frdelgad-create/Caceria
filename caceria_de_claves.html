@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>La Cacería de Claves</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --gold: #f0a500;
+      --gold-dark: #c47f00;
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c28;
+      --border: rgba(240, 165, 0, 0.2);
+      --text: #f0ece4;
+      --muted: #7a7a8a;
+      --success: #2ecc71;
+      --error: #e74c3c;
+      --mono: 'Space Mono', monospace;
+      --display: 'Syne', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--display);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Grid background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(240,165,0,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(240,165,0,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 6rem;
+    }
+
+    /* ── Header ── */
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 8vw, 4rem);
+      font-weight: 800;
+      line-height: 1.05;
+      margin-bottom: 1rem;
+    }
+
+    h1 span {
+      color: var(--gold);
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.7;
+      max-width: 520px;
+      margin-bottom: 3rem;
+    }
+
+    /* ── Prize card ── */
+    .prize-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2.5rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.5rem;
+      text-align: center;
+    }
+
+    .prize-stat label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .prize-stat .value {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: var(--gold);
+      font-family: var(--mono);
+    }
+
+    .prize-stat .value.week {
+      color: var(--text);
+    }
+
+    /* ── Week progress ── */
+    .progress-section {
+      margin-bottom: 2.5rem;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+      border-radius: 99px;
+      transition: width 0.8s ease;
+    }
+
+    /* ── Clues timeline ── */
+    .clues-section {
+      margin-bottom: 3rem;
+    }
+
+    .section-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.25rem;
+    }
+
+    .clue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .clue-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+    }
+
+    .clue-item.locked {
+      opacity: 0.4;
+    }
+
+    .clue-num {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--gold);
+      min-width: 28px;
+      margin-top: 2px;
+    }
+
+    .clue-content {
+      flex: 1;
+    }
+
+    .clue-week {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .clue-text {
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .clue-badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 3px 10px;
+      border-radius: 99px;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+
+    .badge-active {
+      color: var(--success);
+      border-color: rgba(46, 204, 113, 0.4);
+      background: rgba(46, 204, 113, 0.08);
+    }
+
+    .badge-pending {
+      color: var(--muted);
+      border-color: rgba(122, 122, 138, 0.3);
+    }
+
+    /* ── Form ── */
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+
+    .form-card h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-card p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.75rem;
+      line-height: 1.6;
+    }
+
+    .field {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    input[type="text"],
+    input[type="email"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid rgba(240, 165, 0, 0.25);
+      border-radius: 10px;
+      padding: 0.8rem 1rem;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus {
+      border-color: var(--gold);
+    }
+
+    input#clave {
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      background: var(--gold);
+      color: #0a0a0f;
+      border: none;
+      border-radius: 10px;
+      padding: 1rem;
+      font-family: var(--display);
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.04em;
+    }
+
+    button[type="submit"]:hover { background: #ffbe2e; }
+    button[type="submit"]:active { transform: scale(0.98); }
+    button[type="submit"]:disabled {
+      background: var(--muted);
+      cursor: not-allowed;
+    }
+
+    /* ── Result message ── */
+    .result {
+      margin-top: 1.25rem;
+      padding: 1rem 1.25rem;
+      border-radius: 10px;
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      line-height: 1.6;
+      display: none;
+    }
+
+    .result.show { display: block; }
+
+    .result.success {
+      background: rgba(46, 204, 113, 0.1);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      color: var(--success);
+    }
+
+    .result.error {
+      background: rgba(231, 76, 60, 0.1);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+      color: var(--error);
+    }
+
+    .result.info {
+      background: rgba(240, 165, 0, 0.08);
+      border: 1px solid rgba(240, 165, 0, 0.25);
+      color: var(--gold);
+    }
+
+    /* ── Rules ── */
+    .rules {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .rules ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .rules li {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.6;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+
+    .rules li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--gold);
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+    }
+
+    @media (max-width: 540px) {
+      .prize-card { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<main>
+
+  <p class="eyebrow">// Temporada 01 — Evento activo</p>
+
+  <h1>La<br/><span>Cacería</span><br/>de Claves</h1>
+
+  <p class="subtitle">
+    Encuentra los fragmentos ocultos en los videos del canal, descifra la clave maestra
+    y reclama el premio antes que nadie. Cada semana que pasa, el premio crece.
+  </p>
+
+  <!-- Prize Stats -->
+  <div class="prize-card" id="prize-card">
+    <div class="prize-stat">
+      <label>Premio actual</label>
+      <div class="value" id="stat-premio">$—</div>
+    </div>
+    <div class="prize-stat">
+      <label>Semana</label>
+      <div class="value week" id="stat-semana">—/10</div>
+    </div>
+    <div class="prize-stat">
+      <label>Pistas activas</label>
+      <div class="value week" id="stat-pistas">—</div>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-section">
+    <div class="progress-label">
+      <span>Semana 1</span>
+      <span id="label-semana">Semana — de 10</span>
+      <span>Semana 10</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <!-- Clues list -->
+  <div class="clues-section">
+    <p class="section-title">// Pistas liberadas</p>
+    <div class="clue-list" id="clue-list">
+      <div style="font-family: var(--mono); font-size: 13px; color: var(--muted);">Cargando pistas...</div>
+    </div>
+  </div>
+
+  <!-- Claim form -->
+  <div class="form-card">
+    <h2>Reclamar el premio</h2>
+    <p>Si encontraste los fragmentos y armaste la clave, ingrésala aquí.<br/>
+       Tienes máximo <strong>5 intentos por día</strong>.</p>
+
+    <form id="claim-form">
+      <div class="field">
+        <label for="nombre">Tu nombre</label>
+        <input type="text" id="nombre" placeholder="Cómo quieres aparecer en el anuncio" required />
+      </div>
+      <div class="field">
+        <label for="email">Tu email</label>
+        <input type="email" id="email" placeholder="Para contactarte si ganas" required />
+      </div>
+      <div class="field">
+        <label for="clave">La clave maestra</label>
+        <input type="text" id="clave" placeholder="Ej: palabra1 palabra2 palabra3 palabra4" autocomplete="off" required />
+      </div>
+      <button type="submit" id="submit-btn">Enviar clave →</button>
+    </form>
+
+    <div class="result" id="result-msg"></div>
+  </div>
+
+  <!-- Rules -->
+  <div class="rules">
+    <p class="section-title">// Reglas</p>
+    <ul>
+      <li>El evento dura 10 semanas. Cada semana se libera un nuevo fragmento.</li>
+      <li>El premio empieza en $10 y aumenta $10 cada semana sin ganador.</li>
+      <li>Máximo 5 intentos de clave por día por participante.</li>
+      <li>Debes ser suscriptor activo del canal para reclamar el premio.</li>
+      <li>El primer participante en ingresar la clave correcta gana el premio total.</li>
+      <li>El canal se reserva el derecho de verificar la cuenta de YouTube antes de entregar el premio.</li>
+    </ul>
+  </div>
+
+  <footer>
+    <p>© 2025 La Cacería de Claves — Todos los derechos reservados</p>
+  </footer>
+
+</main>
+
+<script>
+  // =========================================================
+  // CONFIGURACIÓN — Cambia estos dos valores
+  // =========================================================
+  const SUPABASE_URL    = 'https://CaceriaClaves.supabase.co';   // <-- tu URL de Supabase
+  const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2aHVoYmxqa3d6c3Vtc3dvd2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MTkwOTAsImV4cCI6MjA5NTQ5NTA5MH0.zxKq2mOInoV8aZ0GPclg95aX9xfk5_tMf-J-qgN7s2U';                      // <-- tu anon/public key
+  const EVENTO_ID       = 'dde7f8c6-1155-4f1e-b7bd-a4af78e11f21';                   // <-- UUID del evento en la tabla
+  // =========================================================
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_ANON,
+    'Authorization': `Bearer ${SUPABASE_ANON}`
+  };
+
+  async function cargarEvento() {
+    try {
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/eventos?id=eq.${EVENTO_ID}&select=premio_acumulado,semana_actual`,
+        { headers }
+      );
+      const data = await r.json();
+      if (!data.length) return;
+      const ev = data[0];
+      document.getElementById('stat-premio').textContent  = '$' + ev.premio_acumulado;
+      document.getElementById('stat-semana').textContent  = ev.semana_actual + '/10';
+      document.getElementById('label-semana').textContent = `Semana ${ev.semana_actual} de 10`;
+      document.getElementById('progress-fill').style.width = (ev.semana_actual / 10 * 100) + '%';
+    } catch(e) { console.error('Error cargando evento', e); }
+  }
+
+  async function cargarPistas() {
+    try {
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/pistas?evento_id=eq.${EVENTO_ID}&order=numero_semana.asc&select=numero_semana,descripcion_pista,activa,url_video`,
+        { headers }
+      );
+      const pistas = await r.json();
+      const activas = pistas.filter(p => p.activa).length;
+      document.getElementById('stat-pistas').textContent = activas + '/4';
+
+      const lista = document.getElementById('clue-list');
+      if (!pistas.length) {
+        lista.innerHTML = '<div style="font-family:var(--mono);font-size:13px;color:var(--muted)">Aún no hay pistas cargadas.</div>';
+        return;
+      }
+      lista.innerHTML = pistas.map(p => `
+        <div class="clue-item ${p.activa ? '' : 'locked'}">
+          <span class="clue-num">#${String(p.numero_semana).padStart(2,'0')}</span>
+          <div class="clue-content">
+            <div class="clue-week">Semana ${p.numero_semana}</div>
+            <div class="clue-text">${p.activa ? p.descripcion_pista : '🔒 Se revela en la semana ' + p.numero_semana}</div>
+            ${p.activa && p.url_video ? `<a href="${p.url_video}" target="_blank" style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-top:6px;display:inline-block;">Ver video →</a>` : ''}
+          </div>
+          <span class="clue-badge ${p.activa ? 'badge-active' : 'badge-pending'}">${p.activa ? 'ACTIVA' : 'PENDIENTE'}</span>
+        </div>
+      `).join('');
+    } catch(e) { console.error('Error cargando pistas', e); }
+  }
+
+  document.getElementById('claim-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn    = document.getElementById('submit-btn');
+    const result = document.getElementById('result-msg');
+    const nombre = document.getElementById('nombre').value.trim();
+    const email  = document.getElementById('email').value.trim();
+    const clave  = document.getElementById('clave').value.trim();
+
+    if (!nombre || !email || !clave) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+    result.className = 'result';
+    result.style.display = 'none';
+
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/validar_clave`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          p_evento_id: EVENTO_ID,
+          p_nombre:    nombre,
+          p_email:     email,
+          p_clave:     clave
+        })
+      });
+      const res = await r.json();
+
+      result.classList.add('show');
+      if (res.correcto) {
+        result.className = 'result show success';
+        result.innerHTML = `🏆 ${res.mensaje}<br/>Premio: $${res.premio}`;
+        document.getElementById('claim-form').style.display = 'none';
+      } else if (res.exito === false) {
+        result.className = 'result show error';
+        result.textContent = res.mensaje;
+        btn.disabled = false;
+        btn.textContent = 'Enviar clave →';
+      } else {
+        result.className = 'result show info';
+        result.innerHTML = `${res.mensaje}<br/><span style="opacity:0.7">Intentos restantes hoy: ${res.intentos_restantes}</span>`;
+        btn.disabled = false;
+        btn.textContent = 'Enviar clave →';
+      }
+    } catch(err) {
+      result.className = 'result show error';
+      result.textContent = 'Error de conexión. Intenta de nuevo.';
+      btn.disabled = false;
+      btn.textContent = 'Enviar clave →';
+    }
+  });
+
+  cargarEvento();
+  cargarPistas();
+</script>
+</body>
+</html>
